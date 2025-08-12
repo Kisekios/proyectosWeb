@@ -1,5 +1,5 @@
 import Joi from 'joi';
-import { startServer } from '../routes/server.js'
+import { startServer } from '../routes/serverRoutes.js'
 
 // Esquema de validación para las variables de entorno
 

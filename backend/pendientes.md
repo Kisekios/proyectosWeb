@@ -1,0 +1,8 @@
+- usar joi para la validacion de los datos en el archivo .json.
+- conexion de cluster, db y colecciones por API y cmd; carpeta services → conexionDbs (sea mongodb o otras dbs → crear conexion con otras dbs posteriormente [postgress])
+- la conexion a los cluster debe ser por medio de una clase, se leen los cluster que estan en .env y de esa manera se establece las conexiones a los cluster, las conexiones se estableceran cuando sean llamados por la api.
+- pendiente revisar si controllers, models y schems son los mismos para destinos nac/inter, para convertirlos en 1 solo.
+- para el login se debe establecer un maximo de 3 intentos, se retoma en 5h, permitir mas ingresos (10max) si es posible por ip.
+- establecer los roles, solo [admin puede crear mas perfiles], solo 1 admin y no se puede eliminar el establecido.
+- se debe revisar primero si ya esta conectado con el cluster, en ese caso no proceder con la conexion del cluster o db.
+- solo admin puede editar,borrar,crear y obtener los perfiles.

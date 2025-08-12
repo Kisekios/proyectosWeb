@@ -1,5 +1,7 @@
 import { MongoClient } from 'mongodb';
 
+
+// Instancia unica y que tendra almacenada las conexiones, se podra ver todas cluster, dbs y colecciones que fueron registradas atravez de esta clase
 class DBClient {
   constructor() {
     this.clients = new Map();
@@ -11,26 +13,26 @@ class DBClient {
     return Array.from(this.clients.keys());
   }
 
-  getDatabases() {
-    return Array.from(this.dbs.keys());
+  getDatabases(clusterName) {
+    return Array.from(this.dbs.keys())
+      .filter(key => key.startsWith(clusterName))
+      .map(key => key.slice(clusterName.length));
   }
 
   getCollections(db) {
-    const dbPrefix = `${db}_`;
-
     return Array.from(this.collections.keys())
-      .filter(key => key.startsWith(dbPrefix))
-      .map(key => key.slice(dbPrefix.length));
+      .filter(key => key.startsWith(db))
+      .map(key => key.slice(db.length));
   }
 
-  async connectToCluster(connectionName, uri, options = {}) {
+  async connectToCluster(clusterName, uri, options = {}) {
     if (!uri || typeof uri !== 'string') {
-      throw new Error(`URI inválida para ${connectionName}`);
+      throw new Error(`URI inválida para ${clusterName}`);
     }
 
-    if (this.clients.has(connectionName)) {
-      console.warn(`⚠️ Ya existe una conexión con el nombre ${connectionName}`);
-      return this.clients.get(connectionName);
+    if (this.clients.has(clusterName)) {
+      console.warn(`⚠️ Ya existe una conexión con el nombre ${clusterName}`);
+      return this.clients.get(clusterName);
     }
 
     try {
@@ -44,25 +46,25 @@ class DBClient {
       });
 
       await client.connect();
-      this.clients.set(connectionName, client);
+      this.clients.set(clusterName, client); // Guarda la conexion con el cluster en this.clients
 
-      console.log(`\n✅ Conexión establecida con cluster: ${connectionName}\n`);
+      console.log(`\n✅ Conexión establecida con cluster: ${clusterName}\n`);
       return client;
     } catch (error) {
-      console.error(`\n❌ Error conectando al cluster ${connectionName}:`, error.message);
+      console.error(`\n❌ Error conectando al cluster ${clusterName}:`, error.message);
       throw error;
     }
   }
 
-  async getDB(connectionName, dbName, verifyExistence = false) {
-    if (!this.clients.has(connectionName)) {
-      throw new Error(`No existe conexión con el nombre ${connectionName}`);
+  async getDB(clusterName, dbName, verifyExistence = false) {
+    if (!this.clients.has(clusterName)) {
+      throw new Error(`No existe conexión con el nombre ${clusterName}`);
     }
 
-    const cacheKey = `${connectionName}_${dbName}`;
+    const cacheKey = `${clusterName}_${dbName}`; // para guardar en this.dbs 
 
     if (!this.dbs.has(cacheKey)) {
-      const client = this.clients.get(connectionName);
+      const client = this.clients.get(clusterName);
       const db = client.db(dbName);
 
       if (verifyExistence) {
@@ -75,7 +77,7 @@ class DBClient {
       }
 
       this.dbs.set(cacheKey, db);
-      console.log(`🔷 Referencia obtenida para DB: ${dbName} en ${connectionName}`);
+      console.log(`🔷 Referencia obtenida para DB: ${dbName}`);
     }
 
     return this.dbs.get(cacheKey);
@@ -95,6 +97,7 @@ class DBClient {
     }
   }
 
+  // Usar por medio de la API
   async closeConnection(connectionName) {
     if (this.clients.has(connectionName)) {
       await this.clients.get(connectionName).close();
@@ -112,7 +115,7 @@ class DBClient {
   }
 
   /**
-   * Cierra todas las conexiones
+   * Cierra todas las conexiones por medio de la API
    */
   async closeAllConnections() {
     for (const [name, client] of this.clients) {

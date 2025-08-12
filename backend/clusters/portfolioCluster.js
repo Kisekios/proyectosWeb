@@ -3,8 +3,8 @@ import fs from 'fs';
 import path from 'path'
 
 // Leer y parsear el JSON
-const configRaw = fs.readFileSync(path.resolve('./clusters/clusters.json'), 'utf-8');
-const clusters = JSON.parse(configRaw);
+const archivoJson = fs.readFileSync(path.resolve('./clusters/clusters.json'), 'utf-8');
+const clusters = JSON.parse(archivoJson);
 
 const cluster = clusters.find(cluster => cluster.clusterName === process.env.CLUSTER_ONE);
 
@@ -37,8 +37,8 @@ export async function initPortfolioCluster() {
     🚀 Conexión exitosa a ${CLUSTER_NAME}
     📁 Bases de datos inicializadas:
 
-      • ${cluster.dbs.db1Name} (${DBClient.getCollections(cluster.dbs.db1Name)})
-      • ${cluster.dbs.db2Name} (${DBClient.getCollections(cluster.dbs.db2Name)})
+      • ${cluster.dbs.db1Name} (${DBClient.getCollections(`${cluster.dbs.db1Name}_`)})
+      • ${cluster.dbs.db2Name} (${DBClient.getCollections(`${cluster.dbs.db2Name}_`)})
     =================================================
     `);
 
@@ -46,7 +46,9 @@ export async function initPortfolioCluster() {
   } catch (error) {
     console.error(`❌ Error inicializando el cluster ${CLUSTER_NAME}:`, error.message);
     await DBClient.closeAllConnections();
-    process.exit(1);
+
+    // ❌ No terminar el proceso aquí
+    throw error;
   }
 }
 
