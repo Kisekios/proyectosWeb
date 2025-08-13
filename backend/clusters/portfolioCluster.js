@@ -37,8 +37,8 @@ export async function initPortfolioCluster() {
     🚀 Conexión exitosa a ${CLUSTER_NAME}
     📁 Bases de datos inicializadas:
 
-      • ${cluster.dbs.db1Name} (${DBClient.getCollections(`${cluster.dbs.db1Name}_`)})
-      • ${cluster.dbs.db2Name} (${DBClient.getCollections(`${cluster.dbs.db2Name}_`)})
+      • ${cluster.dbs.db1Name} (${DBClient.getDataOf('collections',`${cluster.dbs.db1Name}`)})
+      • ${cluster.dbs.db2Name} (${DBClient.getDataOf('collections',`${cluster.dbs.db2Name}`)})
     =================================================
     `);
 

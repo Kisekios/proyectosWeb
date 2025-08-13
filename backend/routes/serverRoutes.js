@@ -7,6 +7,7 @@ import morgan from 'morgan'
 
 import ClustersOnline from '../config/dbClient.js'
 import { initDatabasesClusterOne } from '../index.js'
+import { checkTransactionsOn } from '../utils/transaccionesMongoDb.js';
 
 import usuariosRutas from './portfolioRutas/usuariosRutas.js'
 import proyectosRutas from './portfolioRutas/proyectosRutas.js'
@@ -34,16 +35,16 @@ const setupMiddlewaresAPI = () => {
         max: 100,
         message: '⚠️ Demasiadas req desde esta IP'
     }))
-
-    if (process.env.NODE_ENV === 'desarrollo') {
-        app.use(morgan('dev'))
-        console.log('\n🛠️ Morgan habilitada (modo desarrollo)')
-    }
 }
 
 const setupRoutesAPI = () => {
     app.get('/check', async (req, res) => {
         await initDatabasesClusterOne()
+        if (process.env.NODE_ENV === 'desarrollo') {
+            app.use(morgan('dev'))
+            console.log('\n🛠️ Morgan habilitada (modo desarrollo)')
+            checkTransactionsOn(ClustersOnline.getDataOf('clusters', '', 'values'))
+        }
         res.json({
             status: 'OK',
             entorno: process.env.NODE_ENV
@@ -51,16 +52,16 @@ const setupRoutesAPI = () => {
     })
 
     app.get('/clusters-operativos', (req, res) => {
-        const clusterNames = ClustersOnline.getClustersConnections(); // Array de nombres de clusters
+        const clusterNames = ClustersOnline.getDataOf('clusters'); // Array de nombres de clusters
 
         const clustersInfo = {};
 
         for (const clusterName of clusterNames) {
-            const dbs = ClustersOnline.getDatabases(`${clusterName}_`);
+            const dbs = ClustersOnline.getDataOf('databases', `${clusterName}`);
             const dbInfo = {};
 
             for (const dbName of dbs) {
-                const collections = ClustersOnline.getCollections(`${dbName}_`);
+                const collections = ClustersOnline.getDataOf('collections', `${dbName}`);
                 dbInfo[dbName] = collections; // Ejemplo: "db1": ["users", "products"]
             }
 
@@ -85,11 +86,7 @@ export const startServer = () => {
         const PORT = process.env.PORT
         app.listen(PORT, () => {
             console.log(`
-✅ Servidor Operativo en http://localhost:${PORT}
-    
-    • Endpoints disponibles:
-        - GET /portfolio
-        - GET /destinos`)
+✅ Servidor Operativo en http://localhost:${PORT}`)
 
             setupMiddlewaresAPI()
             setupRoutesAPI()

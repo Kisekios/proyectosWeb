@@ -9,20 +9,52 @@ class DBClient {
     this.collections = new Map();
   }
 
-  getClustersConnections() {
-    return Array.from(this.clients.keys());
-  }
+  getDataOf(scope, name = '', type = 'keys') {
+    const sources = {
+      clusters: this.clients,
+      databases: this.dbs,
+      collections: this.collections,
+    };
 
-  getDatabases(clusterName) {
-    return Array.from(this.dbs.keys())
-      .filter(key => key.startsWith(clusterName))
-      .map(key => key.slice(clusterName.length));
-  }
+    const validTypes = {
+      keys: obj => Array.from(obj.keys()),
+      values: obj => Array.from(obj.values()),
+      entries: obj => Array.from(obj.entries()),
+    };
 
-  getCollections(db) {
-    return Array.from(this.collections.keys())
-      .filter(key => key.startsWith(db))
-      .map(key => key.slice(db.length));
+    const source = sources[scope];
+    const extractor = validTypes[type];
+
+    if (!source || !extractor) {
+      throw new Error('Solicitud inválida: tipo o alcance no reconocido');
+    }
+
+    // Si es clusters, no hay prefijo que filtrar
+    if (scope === 'clusters') {
+      const result = extractor(source);
+      if (result.length === 0) {
+        return `❌ No existen clusters conectados`;
+      }
+      return result;
+    }
+
+    // Para databases y collections
+    const entries = Array.from(source.entries());
+
+    const filtered = entries
+      .filter(([key]) => key.startsWith(name + '_'))
+      .map(([key, value]) => {
+        const strippedKey = key.slice(name.length + 1);
+        if (type === 'keys') return strippedKey;
+        if (type === 'values') return value;
+        return [strippedKey, value];
+      });
+
+    if (filtered.length === 0) {
+      return `❌ No existen ${scope} asociadas a "${name}"`;
+    }
+
+    return filtered;
   }
 
   async connectToCluster(clusterName, uri, options = {}) {
@@ -39,7 +71,7 @@ class DBClient {
       const client = new MongoClient(uri, {
         serverApi: {
           version: '1',
-          strict: true,
+          strict: false,
           deprecationErrors: true,
         },
         ...options

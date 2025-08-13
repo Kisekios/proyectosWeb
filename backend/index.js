@@ -1,6 +1,7 @@
 import './config/env.js';
 import { initPortfolioCluster } from './clusters/portfolioCluster.js'
 import { createIndexes } from './utils/indicesMongodb.js';
+import dbClient from './config/dbClient.js';
 
 let portfolio, destinos;
 
