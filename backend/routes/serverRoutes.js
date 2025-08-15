@@ -30,11 +30,6 @@ const setupMiddlewaresAPI = () => {
         credentials: true
     }))
 
-    app.use(rateLimit({
-        windowMs: 15 * 60 * 1000,
-        max: 100,
-        message: '⚠️ Demasiadas req desde esta IP'
-    }))
 }
 
 const setupRoutesAPI = () => {

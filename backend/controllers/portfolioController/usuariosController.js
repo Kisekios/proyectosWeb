@@ -15,6 +15,15 @@ export const usuariosController = {
         }
     },
 
+    setItems: async (req, res) => {
+        try {
+            const status = await usuariosModel.resetIntentos();
+            res.status(200).json(status)
+        } catch (error) {
+            res.status(500).json({ error: "Error al setear los locksAccount", detalles: error })
+        }
+    },
+
     registrarse: async (req, res) => {
         try {
             if (!req.body) {
@@ -44,6 +53,7 @@ export const usuariosController = {
                 email,
                 telefono,
                 clave: claveEncriptada,
+                rol: 'editor',
                 createdAt: formatDate(now),
                 updatedAt: formatDate(now)
             });
@@ -62,32 +72,59 @@ export const usuariosController = {
 
     ingresar: async (req, res) => {
         try {
+            const MAX_ATTEMPTS = 5;
+            const LOCK_TIME_MINUTES = 15;
 
-            const { error, value } = loginSchema.validate(req.body);
-            if (error) return res.status(400).json({ error: error.details[0].message })
+            const { error, value } = loginSchema.validate(req.body, { abortEarly: false, stripUnknown: true });
+            if (error) return res.status(400).json({ error: error.details[0].message });
 
             const { email, clave } = value;
 
+            // Verificar si la cuenta está bloqueada
             const usuario = await usuariosModel.getByEmail(email);
 
             if (!usuario) {
                 return res.status(404).json({ error: "Usuario no encontrado" });
             }
 
+            if (usuario?.lockedUntil && usuario.lockedUntil > new Date()) {
+                const remainingTime = Math.ceil((usuario.lockedUntil - new Date()) / (1000 * 60));
+                return res.status(403).json({
+                    error: `Cuenta bloqueada. Intente nuevamente en ${remainingTime} minutos`
+                });
+            }
+
             const claveValida = await bcrypt.compare(clave, usuario.clave);
 
             if (!claveValida) {
-                return res.status(401).json({ error: "Credenciales inválidas" });
+                // Incrementar intentos fallidos
+                await usuariosModel.incrementLoginAttempts(email);
+
+                // Bloquear cuenta si excede el límite
+                if (usuario.loginAttempts >= MAX_ATTEMPTS) {
+                    await usuariosModel.lockAccount(email, LOCK_TIME_MINUTES);
+                    return res.status(403).json({
+                        error: `Demasiados intentos fallidos. Cuenta bloqueada por ${LOCK_TIME_MINUTES} minutos`
+                    });
+                }
+
+                const remainingAttempts = MAX_ATTEMPTS - usuario.loginAttempts;
+                return res.status(401).json({
+                    error: `Credenciales inválidas. Te quedan ${remainingAttempts} intentos`
+                });
             }
+
+            // Si la clave es válida, resetear intentos
+            await usuariosModel.resetLoginAttempts(email);
 
             const token = generateToken(usuario);
 
             const { nombre } = usuario;
 
             res.status(200).json({
-                message: "Ingreso exitoso",
-                token,
-                usuario: nombre
+                mensaje: "Ingreso exitoso",
+                usuario: nombre,
+                token
             });
 
         } catch (error) {
@@ -156,6 +193,32 @@ export const usuariosController = {
 
         } catch (error) {
             res.status(500).json({ error: "Error al borrar: " + error.message });
+        }
+    },
+
+    crearAdminInicial: async (req, res) => {
+        try {
+            const adminExists = await usuariosModel.getByEmail(process.env.ADMIN_EMAIL);
+
+            if (adminExists) {
+                return res.status(400).json({ error: 'El admin ya existe' });
+            }
+
+            const claveEncriptada = await bcrypt.hash('Gate@KNSB#97', 10);
+
+            await usuariosModel.create({
+                nombre: 'Kisekios',
+                email: 'dekostump@gmail.com',
+                telefono: '3024869682',
+                clave: claveEncriptada,
+                rol: 'admin',
+                createdAt: formatDate(new Date()),
+                updatedAt: formatDate(new Date())
+            });
+
+            res.status(201).json({ message: 'Admin creado exitosamente' });
+        } catch (error) {
+            res.status(500).json({ error: 'Error al crear admin: ' + error.message });
         }
     }
 };

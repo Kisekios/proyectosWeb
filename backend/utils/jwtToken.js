@@ -5,6 +5,7 @@ import 'dotenv/config'
 export const generateToken = (user) => {
     const payload = {
         email: user.email,  // Usamos email como identificador principal
+        rol: user.rol,
         iss: process.env.JWT_ISSUER,
         aud: process.env.JWT_AUDIENCE
     };

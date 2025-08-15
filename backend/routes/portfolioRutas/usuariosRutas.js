@@ -2,17 +2,24 @@ import { Router } from "express";
 
 import { usuariosController } from '../../controllers/portfolioController/usuariosController.js'
 import { authMiddleware } from '../../middlewares/authMiddleware.js'
+import { usuariosLimiter } from "../../middlewares/rateLimiterAPI.js";
 
 const router = Router()
 
+router.use(usuariosLimiter)
+
 router.post('/ingresar', usuariosController.ingresar)
 
-router.get('/perfiles', authMiddleware, usuariosController.perfiles)
+router.post('/crear-admin', usuariosController.crearAdminInicial);
 
-router.post('/registrarse', authMiddleware, usuariosController.registrarse)
+router.get('/set-items', (authMiddleware(['admin'])), usuariosController.setItems)
 
-router.put('/editar-perfil', authMiddleware, usuariosController.editar)
+router.get('/perfiles', (authMiddleware(['admin'])), usuariosController.perfiles)
 
-router.delete('/delete', authMiddleware, usuariosController.borrar)
+router.post('/registrarse', (authMiddleware(['admin'])), usuariosController.registrarse)
+
+router.delete('/delete', (authMiddleware(['admin'])), usuariosController.borrar)
+
+router.put('/editar-perfil', (authMiddleware(['admin', 'editor'])), usuariosController.editar)
 
 export default router

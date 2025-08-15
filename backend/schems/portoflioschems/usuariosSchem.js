@@ -39,7 +39,22 @@ export const usuariosSchema = Joi.object({
       'string.min': 'La clave debe tener al menos 6 caracteres',
       'string.empty': 'La clave es requerida',
       'any.required': 'La clave es obligatoria'
-    })
+    }),
+
+  rol: Joi.string()
+    .valid('admin', 'editor')
+    .default('editor')
+    .messages({
+      'any.only': 'Rol Error'
+    }),
+
+  loginAttempts: Joi.number()
+    .default(0),
+
+  lastAttempt: Joi.date(),
+
+  lockedUntil: Joi.date()
+    .allow(null)
 });
 
 //Schema para update daaa xD

@@ -83,6 +83,7 @@
     │
     ├── middlewares/          # Middlewares personalizados
     │   └── authMiddleware.js     # Validación de token y autorización
+    │   └── rateLimiterAPI.js
     │
     ├── models/               # Acceso a datos y operaciones sobre MongoDB
     │   ├── destinosModels/
@@ -299,3 +300,19 @@
                 Claves JWT, URIs de conexión a MongoDB y configuraciones de entorno se gestionan mediante archivos .env, evitando exposición en el código fuente.
 
     
+
+
+5. Flujo EndPoints
+
+    Server.js
+    ├── /check
+    ├── /clusters-activos
+    ├── /api/usuarios
+    │   ├─ /ingresar
+    │   │   ├── .controller
+    │   │   │   ├── » envia req.body a loginSchema.validate() ─> « retorna { email, clave}; ⚠️ res.error por datos incoherente ❌ campos invalidos son limpiados.
+    │   │   │   ├── » envia email a usuariosModel.getByEmail() ─> « retorna { nombre, clave , lockedUntil, loginAttempts}; ⚠️ res.error por usuarios no encontrado.
+    │   │   │   ├── → revisa lockedUntil; ⚠️ res "cuenta bloqueada"
+    │   │   │   ├── → compara la req.clave con usuario.clave del model ─> usuariosModel.resetLoginAttempts si ingresa; ❌ fallo en clave » usuariosModel.incrementLoginAttempts() ─> « res intentos faltantes; ⚠️ si loginAttempts = maxAttemps bloquea la cuenta.
+    │   │   │   ├── » envia generateToken(usuario) agrega el iss y aud al token
+    │   │   │   └── « res.status(200) 
