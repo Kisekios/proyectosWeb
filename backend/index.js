@@ -1,6 +1,6 @@
 import './config/env.js';
 import { initPortfolioCluster } from './clusters/portfolioCluster.js'
-import { createIndexes } from './utils/indicesMongodb.js';
+import { createAllIndexes } from './utils/indicesMongodb.js';
 
 let portfolio, destinos;
 
@@ -9,7 +9,7 @@ export async function initDatabasesClusterOne() {
     const dbs = await initPortfolioCluster();
     portfolio = dbs.db1;
     destinos = dbs.db2;
-    await createIndexes();
+    await createAllIndexes();
   } catch (error) {
     console.error('Error al inicializar las bases de datos:', error.message);
   }

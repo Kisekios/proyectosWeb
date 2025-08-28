@@ -75,20 +75,19 @@
     │
     ├── controllers/          # Lógica de negocio para cada módulo
     │   ├── destinosControllers/
-    │   │   ├── internacionalesController.js
-    │   │   └── nacionalesController.js
+    │   │   └── destinosController.js
     │   └── portfolioController/
     │       ├── proyectosController.js
     │       └── usuariosController.js
     │
     ├── middlewares/          # Middlewares personalizados
-    │   └── authMiddleware.js     # Validación de token y autorización
-    │   └── rateLimiterAPI.js
+    │   ├── authMiddleware.js     # Validación de token y autorización
+    │   ├── queryParams.js        # req.query permitidos y bloqueo de query params.
+    │   └── rateLimiterAPI.js     # maximo de peticiones solicitadas por una ip
     │
     ├── models/               # Acceso a datos y operaciones sobre MongoDB
     │   ├── destinosModels/
-    │   │   ├── internacionalesModels.js
-    │   │   └── nacionalesModels.js
+    │   │   └── destinosModels.js
     │   └── portfolioModels/
     │       ├── proyectosModels.js
     │       └── usuariosModels.js
@@ -96,24 +95,22 @@
     ├── routes/               # Definición de rutas de la API
     │   ├── serverRoutes.js       # Rutas principales del servidor, /check, /clusters-operativos
     │   ├── destinosRutas/
-    │   │   ├── internacionalesRutas.js
-    │   │   └── nacionalesRutas.js
+    │   │   └── destinosRutas.js
     │   └── portfolioRutas/
     │       ├── proyectosRutas.js
     │       └── usuariosRutas.js
     │
     ├── schems/               # Validación de datos con Joi
     │   ├── destinosSchems/
-    │   │   ├── internacionalesSchem.js
-    │   │   └── nacionalesSchem.js
+    │   │   └── destinosSchem.js
     │   └── portoflioschems/
     │       ├── proyectosschem.js
     │       └── usuariosSchem.js
     │
     └── utils/                # Utilidades generales
-        ├── fecha.js              # Formateo de fechas
-        ├── indicesMongodb.js     # Creación de índices en MongoDB
-        ├── jwtToken.js           # Generación y validación de JWT
+        ├── fecha.js                # Formateo de fechas
+        ├── indicesMongodb.js       # Creación de índices en MongoDB
+        ├── jwtToken.js             # Generación y validación de JWT
         └── transaccionesMongoDb.js # Diagnóstico de transacciones con MongoDB
 
 
@@ -305,14 +302,162 @@
 5. Flujo EndPoints
 
     Server.js
-    ├── /check
-    ├── /clusters-activos
-    ├── /api/usuarios
-    │   ├─ /ingresar
-    │   │   ├── .controller
-    │   │   │   ├── » envia req.body a loginSchema.validate() ─> « retorna { email, clave}; ⚠️ res.error por datos incoherente ❌ campos invalidos son limpiados.
-    │   │   │   ├── » envia email a usuariosModel.getByEmail() ─> « retorna { nombre, clave , lockedUntil, loginAttempts}; ⚠️ res.error por usuarios no encontrado.
-    │   │   │   ├── → revisa lockedUntil; ⚠️ res "cuenta bloqueada"
-    │   │   │   ├── → compara la req.clave con usuario.clave del model ─> usuariosModel.resetLoginAttempts si ingresa; ❌ fallo en clave » usuariosModel.incrementLoginAttempts() ─> « res intentos faltantes; ⚠️ si loginAttempts = maxAttemps bloquea la cuenta.
-    │   │   │   ├── » envia generateToken(usuario) agrega el iss y aud al token
-    │   │   │   └── « res.status(200) 
+    ├─> /check
+    ├─> /clusters-activos
+    ├─> /api/usuarios { checkLimiter: 10 }
+    │   ├─> /ingresar
+    │   │   ├── bloquearQueryParams
+    │   │   └── .controller.ingresar
+    │   │       ├── » envia req.body a loginSchema.validate() ─> « retorna { email, clave}; ⚠️ campos invalidos son limpiados; ❌ res.error por datos incoherente .
+    │   │       ├── » envia email a usuariosModel.getByEmail() ─> « retorna { nombre, clave , lockedUntil, loginAttempts}; ⚠️ res.error por usuarios no encontrado.
+    │   │       ├── → revisa lockedUntil; ⚠️ res.status(400) "cuenta bloqueada".
+    │   │       ├── → compara req.clave con usuario.clave del model ─> usuariosModel.resetLoginAttempts si ingresa; ❌ fallo en clave » usuariosModel.incrementLoginAttempts() ─> « res intentos faltantes; ⚠️ si loginAttempts = maxAttemps bloquea la cuenta.
+    │   │       ├── » envia generateToken(usuario) agrega el iss y aud al token.
+    │   │       └── « res.status(200) usuario y token.
+    │   ├─> /perfiles
+    │   │   ├── bloquearQueryParams
+    │   │   ├── authMiddleware(['admin'])
+    │   │   └── .controller.perfiles
+    │   │       ├── » solicita usuariosModel.getAll() ─> « retorna los usuarios sin { clave, _id, updatedAt }.
+    │   │       └── « res.status(200) lista de usuarios.
+    │   ├─> /registrarse
+    │   │   ├── bloquearQueryParams
+    │   │   ├── authMiddleware(['admin'])
+    │   │   └── .controller.registrarse
+    │   │       ├── ⚠️ validacion req.body; ⚠️ Validacion de req.body.rol : solo se permite el rol de "editor".
+    │   │       ├── » envia req.body a usuariosSchema.validate(required [nombre, email, telefono, clave], default [rol: editor, loginAttempts, lockedUntil, lastAttempts]); ⚠️ datos no establecidos en schema son eliminados.
+    │   │       ├── » envia {email, nombre}  usuariosModel.getOneByNameEmail(email, nombre); ⚠️ en caso de recibir {email || nombre} de la db res.(400) "Usuario/email ya existe".
+    │   │       ├── → encripta la clave bcrypt
+    │   │       ├── » envia los datos a usuariosModel.create() + createdAt y updatedAt.
+    │   │       └── « res.status(200) { nombre, email }.
+    │   ├─> /delete
+    │   │   ├── bloquearQueryParams
+    │   │   ├── authMiddleware(['admin'])
+    │   │   └── .controller.borrar
+    │   │       ├── » envia { email } a deleteSchema.validate(); ⚠️ los demas datos en req.body son descartados.
+    │   │       ├── » envia { email } a usuariosModel.delete(); ❌ Si no se encuentra el email (deletedCount === 0) en la db ─> res.status(404) "Usuario no encontrado".
+    │   │       └── « res.status(200) "Usuario eliminado" + { email }.
+    │   ├─> /set-items
+    │   │   ├── bloquearQueryParams
+    │   │   ├── authMiddleware(['admin'])
+    │   │   └── .controller.setItems
+    │   │       ├── » envia usuariosModel.resetIntentos() ─> updateMany() ─> setea todos los usuarios ['loginAttempts', 'lastAttempts', 'lockedUntil']
+    │   │       └── « res.status(200) modifiedCount.
+    │   └─> /editar-perfil
+    │       ├── bloquearQueryParams
+    │       ├── authMiddleware(['admin', 'editor'])
+    │       └── .controller.editar
+    │           ├── → separa { email, ...data }; ⚠️ el email es obligatorio ; 
+    │           ├── » envia { ...data } a usuariosUpdateSchema.validate() para validar datos; ⚠️ Solo permite cambios en [ nombre, email, clave ], los demas datos son descartados; ❌ si envia datos no validos en el schem res.status(400).
+    │           ├── → si la clave es enviada la hashea con bcrypt.
+    │           ├── » envia { email, ...data, fechaUpdatedAt } usuariosModel.update(); ❌ « .matchedCount === 0 res.status(400).
+    │           └── » res.status(200) "Usuario actualizado" + userChanges.
+    │   
+    ├─> /api/proyectos { checkLimiter: 15 }
+    │   ├─> /
+    │   │   ├── bloquearQueryParams
+    │   │   └── .controller.proyectos
+    │   │       │   # ✅ » res.status(200).json(proyectos).
+    │   │       │   # ❌ » res.status(500).json({ error })
+    │   │       ├── » solicita los proyectos a proyectosModel.getAll(); ⚠️ sanitiza los datos con mongodb.
+    │   │       └── » res.status(200).
+    │   ├─> /:id
+    │   │   ├── bloquearQueryParams
+    │   │   └── .controller.proyecto
+    │   │       │   # ⚠️ → requerido el id (nombre o id_mongodb) del req.params
+    │   │       │   # ✅ » res.status(200).json(proyecto).
+    │   │       │   # ❌ » res.status(500).json({ error })
+    │   │       ├── → { id } de req.params; ⚠️ { id } puede ser un id_mongodb o el nombre del proyecto; ❌ no id res.status(400).
+    │   │       ├── » envia { id } a proyectosModel.getOne(id); ⚠️ sanitiza los datos con mongodb; ❌ « res.status(200) si no encuentra el proyecto.
+    │   │       └── » res.status(200)
+    │   ├─> /crear
+    │   │   ├── bloquearQueryParams
+    │   │   ├── authMiddleware(['admin'])
+    │   │   └── .controller.crear
+    │   │       │   # ⚠️ → se requieren datos del proyecto segun el proyectosSchema del req.body.
+    │   │       │   # ✅ » res.status(201).json({ exito, id , nombre})
+    │   │       │   # ❌ » res.status(500) / res.status(400) no cumple el schem o si el nombre y titulo ya existe.
+    │   │       ├── → valida req.body ─> » envia proyectosSchema.validate(req.body); ⚠️ sanitiza los campos no requeridos; ❌ « no cumple los required res.status(400).
+    │   │       ├── » envia { nombre, titulo } a proyectosModel.checkNameAndTitle(); ❌ « existencia de nombre o titulo res.status(400).
+    │   │       ├── » envia { value } del schema a proyectosModel.create().
+    │   │       └── » res.status(201).
+    │   ├─> /editar/:id
+    │   │   ├── bloquearQueryParams
+    │   │   ├── authMiddleware(['admin'])
+    │   │   └── .controller.editar
+    │   │       │   # ⚠️ → requerido el id (nombre o id_mongodb) del req.params + los cambios del req.body.
+    │   │       │   # ✅ » res.status(200).json({ exito, cambios })
+    │   │       │   # ❌ » res.status(500) / res.status(400) datos no validos o proyecto no encontrado.
+    │   │       ├── → { id } de req.params y { ...cambios } de req.body; ⚠️ { id } puede ser un id_mongodb o el nombre del proyecto; ❌ no id res.status(400).
+    │   │       ├── » envia { ...cambios } a proyectosUpdateSchema(); ⚠️ minimo 1 dato; ❌ res.status(400) si no cumple el schem.
+    │   │       ├── » envia a proyectosModel.update(id, {...cambios, fechaUpdated} ) ; « res.status (404) si matchedCount = 0
+    │   │       └── » res.status(200)
+    │   └─> /delete/:id
+    │       ├── bloquearQueryParams
+    │       ├── authMiddleware(['admin'])
+    │       └── .controller.borrar
+    │           │   # ⚠️ → requerido el id (nombre o id_mongodb) del req.params.
+    │           │   # ✅ » res.status(200).json({ exito })
+    │           │   # ❌ » res.status(500) / res.status(404) proyecto no encontrado.
+    │           ├── { id } de req.params; ⚠️ { id } puede ser un id_mongodb o el nombre del proyecto; ❌ no id res.status(400).
+    │           ├── » envia { id } a proyectosModel.delete(); ❌ si deletedCount = 0 res.status(400) proyecto no encontrado.
+    │           └── » res.status(200).
+    │
+    ├─> /api/destinos { checkLimiter: 100 }
+    │   ├─> /:destino
+    │   │   ├── bloquearQueryParams
+    │   │   └── .controller.infoDestino
+    │   │       │   # ⚠️ → requiere { destino } del req.params.
+    │   │       │   # ✅ » res.status(200).json({destino})
+    │   │       │   # ❌ » res.status(500) / res.status(400) destino no encontrado
+    │   │       ├── 
+    │   │       ├── 
+    │   │       └── 
+    │   ├─> /destacados?tipo=query
+    │   │   ├── validarDestacadosQuery
+    │   │   └── .controller.destacados
+    │   │       │   # ⚠️ → requiere {nacionales, internacionales, home} de query params tipo
+    │   │       │   # ✅ » res.status(200).json({ destacados nac/int/home})
+    │   │       │   # ❌ » res.status(500) / res.status(400) querys params no validos.
+    │   │       ├── 
+    │   │       ├── 
+    │   │       └── 
+    │   ├─> /catalogo/:{nacionales, internacionales}
+    │   │   ├── bloquearQueryParams
+    │   │   └── .controller.allDestinosNI
+    │   │       │   # ⚠️ → requiere unicamente {nacionales, internacionales} de req.params.
+    │   │       │   # ✅ » res.status(200).json({catalogo nac/inter})
+    │   │       │   # ❌ » res.status(500) / res.status(400) query params no valido 
+    │   │       ├── 
+    │   │       ├── 
+    │   │       └── 
+    │   ├─> /nuevo
+    │   │   ├── bloquearQueryParams
+    │   │   ├── authMiddleware(['admin'])
+    │   │   └── .controller.crearDestino
+    │   │       │   # ⚠️ → requiere { destino } de req.body → se valida con newDestinoSchem (joi).
+    │   │       │   # ✅ » res.status(200).json({exito, nombreDestino})
+    │   │       │   # ❌ » res.status(500) / res.status(400) nombreDestino ya existe, datos de req.body incompletos o no validos.
+    │   │       ├── 
+    │   │       ├── 
+    │   │       └── 
+    │   ├─> /editar/:id
+    │   │   ├── bloquearQueryParams
+    │   │   ├── authMiddleware(['admin'])
+    │   │   └── .controller.editarDestino
+    │   │       │   # ⚠️ → requiere { destino } de req.params, { datos } de req.body → se valida con destinoUpdateSchem.
+    │   │       │   # ✅ » res.status(200).json({exito, cambio})
+    │   │       │   # ❌ » res.status(500) / res.status(400) destino no encontrado, datos de req.body no validos.
+    │   │       ├── 
+    │   │       ├── 
+    │   │       └── 
+    │   └─> /delete/:id
+    │       ├── bloquearQueryParams
+    │       ├── authMiddleware(['admin'])
+    │       └── .controller.borrarDestino
+    │           │   # ⚠️ → requiere { destino } de req.params.
+    │           │   # ✅ » res.status(200).json({exito, nombreDestinoDel})
+    │           │   # ❌ » res.status(500) / res.status(400) destino no encontrado.
+    │           ├── 
+    │           ├── 
+    │           └── 

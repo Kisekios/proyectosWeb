@@ -13,6 +13,10 @@ export const authMiddleware = (rolesPermitidos = []) => {
             const usuario = await usuariosModel.getByEmail(decoded.email); // decoded.email viene del token
             if (!usuario) throw new Error('Usuario no existe');
 
+            if (decoded.rol !== usuario.rol) {
+                return res.status(403).json({ error: 'Los permisos no coinciden' })
+            }
+
             if (rolesPermitidos.length > 0 && !rolesPermitidos.includes(usuario.rol)) {
                 return res.status(403).json({ error: 'No tienes permisos para esta acción' });
             }

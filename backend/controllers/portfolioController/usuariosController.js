@@ -30,21 +30,25 @@ export const usuariosController = {
                 return res.status(400).json({ error: 'No se enviaron datos para el registro' });
             }
 
+            if ('rol' in req.body && req.body.rol !== 'editor') {
+                return res.status(400).json({ error: 'Rol no válido' });
+            }
+
             const { error, value } = usuariosSchema.validate(req.body, { abortEarly: false, stripUnknown: true });
 
             if (error) {
                 return res.status(400).json({ error: error.details.map(msg => msg.message).join(', ') });
             }
 
-            const { nombre, email, telefono, clave } = value;
+            const { nombre, email, telefono, clave, rol } = value;
 
             const { emailExistente, nombreExistente } = await usuariosModel.getOneByNameEmail(email, nombre);
 
             if (nombreExistente || emailExistente) {
-                return res.status(400).json({ error: "El usuario o email ya existe" });
+                return res.status(400).json({ error: "El nombre de usuario o email ya existe" });
             }
 
-            const claveEncriptada = await bcrypt.hash(clave, 10);
+            const claveEncriptada = await bcrypt.hash(clave, Number(process.env.HASH_SALT));
 
             const now = new Date();
 
@@ -53,16 +57,15 @@ export const usuariosController = {
                 email,
                 telefono,
                 clave: claveEncriptada,
-                rol: 'editor',
+                rol,
                 createdAt: formatDate(now),
                 updatedAt: formatDate(now)
             });
 
             res.status(201).json({
                 message: "Usuario registrado exitosamente",
-                id: data.insertedId,
-                email: email,
-                nombre: nombre
+                email: data.email,
+                nombre: data.nombre
             });
 
         } catch (error) {
@@ -146,7 +149,7 @@ export const usuariosController = {
             }
 
             if (value.clave) {
-                value.clave = await bcrypt.hash(value.clave, 10);
+                value.clave = await bcrypt.hash(value.clave, Number(process.env.HASH_SALT));
             }
 
             const now = new Date();
@@ -169,7 +172,7 @@ export const usuariosController = {
     borrar: async (req, res) => {
         try {
             // Validación
-            const { error, value } = deleteSchema.validate(req.body, { abortEarly: false, stripUnknown: true });
+            const { error, value } = deleteSchema.validate(req.validatedId, { abortEarly: false, stripUnknown: true });
 
             if (error) {
                 return res.status(400).json({
@@ -188,37 +191,11 @@ export const usuariosController = {
 
             res.status(200).json({
                 message: 'Usuario eliminado correctamente',
-                emailEliminado: email
+                usuario: email
             });
 
         } catch (error) {
             res.status(500).json({ error: "Error al borrar: " + error.message });
-        }
-    },
-
-    crearAdminInicial: async (req, res) => {
-        try {
-            const adminExists = await usuariosModel.getByEmail(process.env.ADMIN_EMAIL);
-
-            if (adminExists) {
-                return res.status(400).json({ error: 'El admin ya existe' });
-            }
-
-            const claveEncriptada = await bcrypt.hash('Gate@KNSB#97', 10);
-
-            await usuariosModel.create({
-                nombre: 'Kisekios',
-                email: 'dekostump@gmail.com',
-                telefono: '3024869682',
-                clave: claveEncriptada,
-                rol: 'admin',
-                createdAt: formatDate(new Date()),
-                updatedAt: formatDate(new Date())
-            });
-
-            res.status(201).json({ message: 'Admin creado exitosamente' });
-        } catch (error) {
-            res.status(500).json({ error: 'Error al crear admin: ' + error.message });
         }
     }
 };

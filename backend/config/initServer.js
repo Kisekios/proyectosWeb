@@ -7,7 +7,8 @@ const envSchema = Joi.object({
   // Requeridos para todos los entornos
   PORT: Joi.number().port().required(),
   ALLOWED_ORIGINS: Joi.string().required(),
-  JWT_SECRET: Joi.string().min(8).required(), // Mínimo 8 caracteres por seguridad
+  JWT_SECRET: Joi.string().min(8).required(),
+  HASH_SALT: Joi.number().required().options({ convert: true }),
   NODE_ENV: Joi.string()
     .valid('desarrollo', 'produccion')
     .required()

@@ -11,8 +11,7 @@ import { checkTransactionsOn } from '../utils/transaccionesMongoDb.js';
 
 import usuariosRutas from './portfolioRutas/usuariosRutas.js'
 import proyectosRutas from './portfolioRutas/proyectosRutas.js'
-import nacionalesRutas from './destinosRutas/nacionalesRutas.js'
-import internacionalesRutas from './destinosRutas/internacionalesRutas.js'
+import destinosRutas from './destinosRutas/destinosRutas.js'
 
 const app = express()
 
@@ -34,16 +33,21 @@ const setupMiddlewaresAPI = () => {
 
 const setupRoutesAPI = () => {
     app.get('/check', async (req, res) => {
-        await initDatabasesClusterOne()
-        if (process.env.NODE_ENV === 'desarrollo') {
-            app.use(morgan('dev'))
-            console.log('\n🛠️ Morgan habilitada (modo desarrollo)')
-            checkTransactionsOn(ClustersOnline.getDataOf('clusters', '', 'values'))
+        try {
+            await initDatabasesClusterOne()
+            if (process.env.NODE_ENV === 'desarrollo') {
+                app.use(morgan('dev'))
+                console.log('\n🛠️ Morgan habilitada (modo desarrollo)')
+                checkTransactionsOn(ClustersOnline.getDataOf('clusters', '', 'values'))
+            }
+            res.json({
+                status: 'OK',
+                entorno: process.env.NODE_ENV
+            })
+
+        } catch (error) {
+            res.status(400).json({msg: 'Error al establecer conexion con el cluster', detalles: error})
         }
-        res.json({
-            status: 'OK',
-            entorno: process.env.NODE_ENV
-        })
     })
 
     app.get('/clusters-operativos', (req, res) => {
@@ -71,8 +75,7 @@ const setupRoutesAPI = () => {
 
     app.use('/api/portfolio/usuarios', usuariosRutas)
     app.use('/api/portfolio/proyectos', proyectosRutas)
-    app.use('/api/destinos/nacionales', nacionalesRutas)
-    app.use('/api/destinos/internacionales', internacionalesRutas)
+    app.use('/api/destinos/', destinosRutas)
 }
 
 

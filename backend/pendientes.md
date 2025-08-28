@@ -6,3 +6,7 @@
 - establecer los roles, solo [admin puede crear mas perfiles], solo 1 admin y no se puede eliminar el establecido.
 - se debe revisar primero si ya esta conectado con el cluster, en ese caso no proceder con la conexion del cluster o db.
 - solo admin puede editar,borrar,crear y obtener los perfiles.
+- agregar los listeners de los clusters.
+- la creacion de indices tambien debe ser para todas las colecciones.
+- en el model se puede verificar los cambios, ya que acepta los mismos datos que ya tiene, y los envia nuevamente como si se estuvieran actualizando.
+- revisar las proyecciones de las solicitudes de mongodb para en caso de no requerir todo el documento, recibir unicamente lo que se usa.

@@ -42,7 +42,7 @@ export const usuariosSchema = Joi.object({
     }),
 
   rol: Joi.string()
-    .valid('admin', 'editor')
+    .valid('editor')
     .default('editor')
     .messages({
       'any.only': 'Rol Error'
