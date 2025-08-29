@@ -169,10 +169,11 @@ export const usuariosController = {
         }
     },
 
-    borrar: async (req, res) => {
+    borrar: async (req, res) => { //se puede borrar por id, no se puede borrar el usuario principal
         try {
+            const validar = { email: req.validatedId}
             // Validación
-            const { error, value } = deleteSchema.validate(req.validatedId, { abortEarly: false, stripUnknown: true });
+            const { error, value } = deleteSchema.validate(validar, { abortEarly: false, stripUnknown: true });
 
             if (error) {
                 return res.status(400).json({

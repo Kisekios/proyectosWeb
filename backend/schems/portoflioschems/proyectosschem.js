@@ -54,7 +54,7 @@ export const proyectosSchema = Joi.object({
     version: Joi.string().pattern(/^\d+\.\d+\.\d+$/).default('1.0.0').messages({
         'string.pattern.base': 'La versión debe tener formato semántico (ej. 1.0.0)'
     })
-});
+}).unknown(false);
 
 export const proyectosUpdateSchema = Joi.object({
     nombre: Joi.string().min(3).max(50).messages({
@@ -97,4 +97,4 @@ export const proyectosUpdateSchema = Joi.object({
 
 }).min(1).messages({
     'object.min': 'Debes enviar al menos un campo para actualizar'
-});
+}).unknown(false);

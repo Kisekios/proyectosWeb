@@ -55,9 +55,9 @@ export const usuariosSchema = Joi.object({
 
   lockedUntil: Joi.date()
     .allow(null)
-});
+}).unknown(false);
 
-//Schema para update daaa xD
+//Schema para update
 export const usuariosUpdateSchema = Joi.object({
   nombre: Joi.string()
     .min(3)
@@ -81,7 +81,7 @@ export const usuariosUpdateSchema = Joi.object({
     })
 }).min(1).messages({
   'object.min': 'Debes enviar al menos un campo para actualizar'
-});
+}).unknown(false);
 
 // Añadimos mensajes personalizados para el login
 export const loginSchema = Joi.object({
@@ -92,7 +92,7 @@ export const loginSchema = Joi.object({
   clave: Joi.string().required().messages({
     'any.required': 'La clave es obligatoria'
   })
-});
+}).unknown(false);
 
 // Schema para eliminación
 export const deleteSchema = Joi.object({
@@ -103,4 +103,4 @@ export const deleteSchema = Joi.object({
       'string.email': 'El email debe ser válido',
       'any.required': 'El email es obligatorio para eliminar'
     })
-});
+}).unknown(false);

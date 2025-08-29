@@ -16,13 +16,6 @@ router.get('/',
     proyectosController.proyectos
 );
 
-router.get('/:id',
-    sanitizarParams,
-    bloqReqBody,
-    bloqReqQuery,
-    proyectosController.proyecto
-);
-
 router.post('/crear',
     bloqReqParams,
     bloqReqQuery,
@@ -30,17 +23,24 @@ router.post('/crear',
     proyectosController.crear
 );
 
-router.put('/editar/:id',
-    sanitizarParams,
+router.get('/:id',
+    bloqReqBody,
     bloqReqQuery,
+    sanitizarParams,
+    proyectosController.proyecto
+);
+
+router.put('/editar/:id',
+    bloqReqQuery,
+    sanitizarParams,
     authMiddleware(['admin']),
     proyectosController.editar
 );
 
 router.delete('/delete/:id',
-    sanitizarParams,
     bloqReqBody,
     bloqReqQuery,
+    sanitizarParams,
     authMiddleware(['admin']),
     proyectosController.borrar
 );

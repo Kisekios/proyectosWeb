@@ -86,7 +86,7 @@ export const proyectosModel = {
         }
     },
 
-    checkNameAndTitle: async (nombre, titulo) => {
+    checkNameAndTittle: async (nombre, titulo) => {
         try {
             const [nombreExiste, tituloExistente] = await Promise.all([
                 portfolio.collection('proyectos').findOne({ nombre }),

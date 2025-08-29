@@ -1,3 +1,6 @@
+import { destinos } from "../../index.js";
+import { createSafeObjectId } from '../../utils/objetcIdMongoDB.js'
+
 export const destinosModel = {
     getOne: async (destino) => {
         try {
@@ -50,6 +53,23 @@ export const destinosModel = {
             return true
         } catch (error) {
 
+        }
+    },
+
+    checkNameAndTittle: async (nombre, titulo) => {
+        try {
+            const [nombreExiste, tituloExistente] = await Promise.all([
+                destinos.collection('nacionales','internacionales').findOne({ nombre }),
+                destinos.collection('destinos','internacionales').findOne({ titulo })
+            ]);
+
+            return {
+                nombreExiste: !!nombreExiste,
+                tituloExistente: !!tituloExistente
+            };
+            //projects
+        } catch (error) {
+            
         }
     }
 }

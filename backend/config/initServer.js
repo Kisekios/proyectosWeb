@@ -31,7 +31,7 @@ export const validateEnv = async () => {
     throw new Error(`❌ Configuración de entorno inválida (${process.env.NODE_ENV}): ${errorDetails}`);
   }
 
-  console.log(`\n✅ Variables de entorno validadas correctamente (Entorno: ${process.env.NODE_ENV})`);
+  console.log(`✅ Variables de entorno validadas correctamente (Entorno: ${process.env.NODE_ENV})`);
 
   try {
     startServer();

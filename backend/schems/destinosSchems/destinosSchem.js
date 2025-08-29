@@ -1,7 +1,5 @@
 import Joi from 'joi'
 
-export const newDestinoSchema = Joi.object({})
+export const newDestinoSchema = Joi.object({}).unknown(false);
 
-export const updateDestinoSchema = Joi.object({})
-
-export const queryDestinoSchema = Joi.object({})
+export const updateDestinoSchema = Joi.object({}).unknown(false);

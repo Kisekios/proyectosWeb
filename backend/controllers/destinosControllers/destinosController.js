@@ -1,14 +1,14 @@
 import { destinosModel } from '../../models/destinosModels/destinosModels.js'
-import { newDestinoSchema, updateDestinoSchema, queryDestinoSchema } from '../../schems/destinosSchems/destinosSchem.js'
+import { newDestinoSchema, updateDestinoSchema } from '../../schems/destinosSchems/destinosSchem.js'
 import formatDate from "../../utils/fecha.js";
 
 export const destinosController = {
 
     destino: async (req, res) => {
         try {
-            const { id } = req.params
-            const destino = await destinosModel.getOne(id)
-            res.status(200).json({ id, destino })
+            if (!req.validatedId) return res.status(400).json({ error: 'parametro no valido' })
+            const destino = await destinosModel.getOne(req.validatedId)
+            res.status(200).json({ dato: req.validatedId, destino })
         } catch (error) {
 
         }
@@ -17,7 +17,7 @@ export const destinosController = {
     destacados: async (req, res) => {
         try {
             const { tipo } = req.validatedQuery
-            if (!tipo) res.status(400).json({error: 'parametro no valido'})
+            if (!tipo) res.status(400).json({ error: 'parametro no valido' })
             const destacados = await destinosModel.getFeatured()
             res.status(200).json({ tipo, destacados })
         } catch (error) {
@@ -27,9 +27,9 @@ export const destinosController = {
 
     catalogo: async (req, res) => {
         try {
-            const { id } = req.params
+            if (!req.validatedId) return res.status(400).json({ error: 'parametro no valido' })
             const catalogo = await destinosModel.getList()
-            res.status(200).json({ id, catalogo })
+            res.status(200).json({ dato: req.validatedId, catalogo })
         } catch (error) {
 
         }
@@ -37,7 +37,9 @@ export const destinosController = {
 
     nuevo: async (req, res) => {
         try {
-            const { ...data } = req.body
+            const { nombre, titulo, ...data } = req.body
+            const { nombreExiste, tituloExiste } = await destinosModel.checkNameAndTittle(nombre, titulo);
+
             const newDestino = await destinosModel.create()
             res.status(200).json({ data, newDestino })
         } catch (error) {
@@ -47,9 +49,10 @@ export const destinosController = {
 
     editar: async (req, res) => {
         try {
-            const { id } = req.params
+            if (!req.validatedId) return res.status(400).json({ error: 'parametro no valido' })
             const { ...data } = req.body
-            const destinoUpdated = await destinosModel.update()
+
+            const destinoUpdated = await destinosModel.update(req.validatedId, { ...data, updatedAt: formatDate(new Date()) })
             res.status(200).json({ id, data, destinoUpdated })
         } catch (error) {
 
@@ -58,9 +61,9 @@ export const destinosController = {
 
     borrar: async (req, res) => {
         try {
-            const { id } = req.params
-            const destinoDeleted = await destinosModel.delete()
-            res.status(200).json({ id, destinoDeleted })
+            if (!req.validatedId) return res.status(400).json({ error: 'parametro no valido' })
+            const destinoDeleted = await destinosModel.delete(req.validatedId)
+            res.status(200).json({ dato: req.validatedId, destinoDeleted })
         } catch (error) {
 
         }

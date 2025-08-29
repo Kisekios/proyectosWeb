@@ -1,4 +1,6 @@
 import { portfolio } from '../../index.js';
+import { createSafeObjectId } from '../../utils/objetcIdMongoDB.js'
+
 
 export const usuariosModel = {
     getAll: async () => {

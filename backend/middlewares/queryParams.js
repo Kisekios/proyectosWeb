@@ -5,10 +5,7 @@ import { createSafeObjectId } from '../utils/objetcIdMongoDB.js';
 export const sanitizarParams = (req, res, next) => {
     const schema = Joi.object({
         id: Joi.string()
-            .required()
             .messages({
-                'any.invalid': 'El parámetro id no es un ObjectId válido ni un nombre permitido',
-                'any.required': 'El parámetro id es obligatorio',
                 'string.base': 'El parámetro id debe ser una cadena'
             })
     }).unknown(false); // No se permiten otros params
@@ -21,6 +18,7 @@ export const sanitizarParams = (req, res, next) => {
 
     const objectId = createSafeObjectId(value.id);
     req.validatedId = objectId || value.id;
+    
     next();
 };
 
@@ -31,9 +29,9 @@ export const sanitizarQuerys = (req, res, next) => {
             .valid('home', 'nacionales', 'internacionales')
             .required()
             .messages({
-                'any.only': 'El tipo debe ser uno de: home, nacionales, internacionales',
-                'any.required': 'El parámetro tipo es obligatorio',
-                'string.base': 'El parámetro tipo debe ser una cadena'
+                'any.only': 'parametro no valido',
+                'any.required': 'El parámetro es obligatorio',
+                'string.base': 'El parámetro debe ser una cadena'
             })
     }).unknown(false); // No se permiten otros query params
 
