@@ -9,7 +9,7 @@ const router = Router()
 
 router.use(destinosLimiter);
 
-router.get('/informacion/:id',
+router.get('/informacion/:destino',
     bloqReqBody,
     bloqReqQuery,
     sanitizarParams,
@@ -23,7 +23,7 @@ router.get('/destacados',
     destinosController.destacados
 )
 
-router.get('/catalogo/:id',
+router.get('/catalogo/:destinos',
     bloqReqBody,
     bloqReqQuery,
     sanitizarParams,
@@ -37,14 +37,14 @@ router.post('/nuevo',
     destinosController.nuevo
 )
 
-router.put('/editar/:id',
+router.put('/editar/:destino',
     bloqReqQuery,
     sanitizarParams,
     authMiddleware(['admin']),
     destinosController.editar
 )
 
-router.delete('/delete/:id',
+router.delete('/delete/:destino',
     bloqReqBody,
     bloqReqQuery,
     sanitizarParams,

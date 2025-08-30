@@ -4,8 +4,10 @@ import { createSafeObjectId } from '../../utils/objetcIdMongoDB.js'
 export const destinosModel = {
     getOne: async (destino) => {
         try {
-            //projects
-            return true
+
+            //Envia practimanete toda la info
+            //projects { createdAT: 0, updatedAt:0, _id:0 }
+            return destino
         } catch (error) {
 
         }
@@ -13,8 +15,8 @@ export const destinosModel = {
 
     getFeatured: async (destacadosOf) => {
         try {
-            //projects
-            return true
+            //projects {titulo:1 ,imagen: 1, url: 1, _id:0}
+            return destacadosOf
         } catch (error) {
 
         }
@@ -22,8 +24,8 @@ export const destinosModel = {
 
     getList: async (catalogoOf) => {
         try {
-            //projects
-            return true
+            //projects {titulo:1 , url: 1 _id:0}
+            return catalogoOf
         } catch (error) {
 
         }
@@ -32,7 +34,7 @@ export const destinosModel = {
     create: async (nuevoDestino) => {
         try {
             //projects
-            return true
+            return nuevoDestino
         } catch (error) {
 
         }
@@ -41,7 +43,7 @@ export const destinosModel = {
     update: async (updateDestino) => {
         try {
             //projects
-            return true
+            return updateDestino
         } catch (error) {
 
         }
@@ -50,7 +52,7 @@ export const destinosModel = {
     delete: async (deleteDestino) => {
         try {
             //projects
-            return true
+            return deleteDestino
         } catch (error) {
 
         }
@@ -58,18 +60,29 @@ export const destinosModel = {
 
     checkNameAndTittle: async (nombre, titulo) => {
         try {
-            const [nombreExiste, tituloExistente] = await Promise.all([
-                destinos.collection('nacionales','internacionales').findOne({ nombre }),
-                destinos.collection('destinos','internacionales').findOne({ titulo })
-            ]);
+            const colecciones = await destinos.listCollections().toArray();
+
+            let nombreExiste = false;
+            let tituloExistente = false;
+
+            for (const { name } of colecciones) {
+                const [nombreMatch, tituloMatch] = await Promise.all([
+                    destinos.collection(name).findOne({ nombre }, { projection: { nombre: 1, _id: 0 } }),
+                    destinos.collection(name).findOne({ titulo }, { projection: { titulo: 1, _id: 0 } })
+                ]);
+
+                if (nombreMatch) return nombreExiste = true;
+                if (tituloMatch) return tituloExistente = true;
+            }
 
             return {
-                nombreExiste: !!nombreExiste,
-                tituloExistente: !!tituloExistente
+                nombreExiste: false,
+                tituloExistente: false
             };
+
             //projects
         } catch (error) {
-            
+
         }
     }
 }

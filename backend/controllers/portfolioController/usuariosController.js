@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 
 import { usuariosModel } from "../../models/portfolioModels/usuariosModels.js";
-import { usuariosSchema, usuariosUpdateSchema, loginSchema, deleteSchema } from "../../schems/portoflioschems/usuariosSchem.js";
+import { usuariosSchema, usuariosUpdateSchema, loginSchema } from "../../schems/portoflioschems/usuariosSchem.js";
 import formatDate from "../../utils/fecha.js";
 import { generateToken } from '../../utils/jwtToken.js'
 
@@ -169,19 +169,9 @@ export const usuariosController = {
         }
     },
 
-    borrar: async (req, res) => { //se puede borrar por id, no se puede borrar el usuario principal
+    borrar: async (req, res) => { //no se puede borrar el usuario principal
         try {
-            const validar = { email: req.validatedId}
-            // Validación
-            const { error, value } = deleteSchema.validate(validar, { abortEarly: false, stripUnknown: true });
-
-            if (error) {
-                return res.status(400).json({
-                    error: error.details.map(d => d.message).join(', ')
-                });
-            }
-
-            const { email } = value; // Extraemos el email validado
+            const { email } = req.validatedParams
 
             // Operación de eliminación
             const resultado = await usuariosModel.delete(email);

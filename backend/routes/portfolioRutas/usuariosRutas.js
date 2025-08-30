@@ -29,7 +29,7 @@ router.post('/registrarse',
     usuariosController.registrarse
 )
 
-router.delete('/delete/:id',
+router.delete('/delete/:email',
     bloqReqBody,
     bloqReqQuery,
     sanitizarParams,
@@ -45,7 +45,7 @@ router.get('/set-items',
     usuariosController.setItems
 )
 
-router.put('/editar-perfil',
+router.put('/editar',
     bloqReqParams,
     bloqReqQuery,
     authMiddleware(['admin', 'editor']),

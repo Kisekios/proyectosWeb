@@ -3,22 +3,36 @@ import { createSafeObjectId } from '../utils/objetcIdMongoDB.js';
 
 // Middleware para sanitizar req.params
 export const sanitizarParams = (req, res, next) => {
-    const schema = Joi.object({
-        id: Joi.string()
-            .messages({
-                'string.base': 'El parámetro id debe ser una cadena'
-            })
-    }).unknown(false); // No se permiten otros params
+    const allowedParams = ['id', 'email', 'proyectos', 'destino', 'destinos'];
 
+    const schema = Joi.object({
+        id: Joi.string().messages({
+            'string.base': 'El parámetro id debe ser una cadena'
+        }),
+        email: Joi.string().email(),
+        proyecto: Joi.string(),
+        destino: Joi.string(),
+        destinos: Joi.string().valid('nacionales', 'internacionales')
+    })
+        .unknown(false)
+        .oxor(...allowedParams);
     const { error, value } = schema.validate(req.params);
 
     if (error) {
         return res.status(400).json({ error: error.message });
     }
 
-    const objectId = createSafeObjectId(value.id);
-    req.validatedId = objectId || value.id;
-    
+    if (value.id) {
+        const objectId = createSafeObjectId(value.id);
+        if (!objectId) {
+            return res.status(400).json({ error: 'ID inválido' });
+        }
+        req.validatedParams = { id: objectId };
+    } else {
+        const paramKey = Object.keys(value)[0];
+        req.validatedParams = { [paramKey]: value[paramKey] };
+    }
+
     next();
 };
 

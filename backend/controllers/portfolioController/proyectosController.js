@@ -16,16 +16,14 @@ export const proyectosController = {
 
     proyecto: async (req, res) => {
         try {
-            if (!req.validatedId) {
-                return res.status(400).json({ error: 'El ID del proyecto es obligatorio' });
-            }
+            const { proyecto } = req.validatedParams
 
-            const proyecto = await proyectosModel.getOne(req.validatedId);
-            if (!proyecto) {
+            const resultado = await proyectosModel.getOne(proyecto);
+            if (!resultado) {
                 return res.status(404).json({ error: "Proyecto no encontrado" });
             }
 
-            res.status(200).json(proyecto);
+            res.status(200).json(resultado);
         } catch (error) {
             res.status(500).json({ error: "Error al obtener el proyecto: " + error.message });
         }
@@ -77,11 +75,13 @@ export const proyectosController = {
 
     editar: async (req, res) => {
         try {
-            if (!req.validatedId) {
+            const { proyecto } = req.validatedParams
+
+            if (!proyecto) {
                 return res.status(400).json({ error: 'El ID del proyecto es obligatorio' });
             }
 
-            const { error, value } = proyectosUpdateSchema.validate(req.body, {
+            const { error, value } = proyectosUpdateSchema.validate(proyecto, {
                 abortEarly: false,
                 stripUnknown: true
             });
@@ -90,7 +90,7 @@ export const proyectosController = {
                 return res.status(400).json({ error: error.details.map(d => d.message).join(', ') });
             }
 
-            const resultado = await proyectosModel.update(req.validatedId, {
+            const resultado = await proyectosModel.update(proyecto, {
                 ...value,
                 updatedAt: formatDate(new Date())
             });
@@ -110,11 +110,13 @@ export const proyectosController = {
 
     borrar: async (req, res) => {
         try {
-            if (!req.validatedId) {
+            const { proyecto } = req.validatedParams
+
+            if (!proyecto) {
                 return res.status(400).json({ error: 'El ID del proyecto es obligatorio' });
             }
 
-            const resultado = await proyectosModel.delete(req.validatedId);
+            const resultado = await proyectosModel.delete(proyecto);
             if (resultado.deletedCount === 0) {
                 return res.status(404).json({ error: "Proyecto no encontrado" });
             }

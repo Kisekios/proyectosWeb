@@ -93,14 +93,3 @@ export const loginSchema = Joi.object({
     'any.required': 'La clave es obligatoria'
   })
 }).unknown(false);
-
-// Schema para eliminación
-export const deleteSchema = Joi.object({
-  email: Joi.string()
-    .email()
-    .required()
-    .messages({
-      'string.email': 'El email debe ser válido',
-      'any.required': 'El email es obligatorio para eliminar'
-    })
-}).unknown(false);

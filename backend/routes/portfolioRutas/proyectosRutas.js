@@ -23,21 +23,21 @@ router.post('/crear',
     proyectosController.crear
 );
 
-router.get('/:id',
+router.get('/:proyecto',
     bloqReqBody,
     bloqReqQuery,
     sanitizarParams,
     proyectosController.proyecto
 );
 
-router.put('/editar/:id',
+router.put('/editar/:proyecto',
     bloqReqQuery,
     sanitizarParams,
     authMiddleware(['admin']),
     proyectosController.editar
 );
 
-router.delete('/delete/:id',
+router.delete('/delete/:proyecto',
     bloqReqBody,
     bloqReqQuery,
     sanitizarParams,
