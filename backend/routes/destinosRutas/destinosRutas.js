@@ -10,29 +10,29 @@ const router = Router()
 router.use(destinosLimiter);
 
 router.get('/informacion/:destino',
-    bloqReqBody,
     bloqReqQuery,
+    bloqReqBody,
     sanitizarParams,
     destinosController.destino
 )
 
 router.get('/destacados',
-    bloqReqBody,
     bloqReqParams,
+    bloqReqBody,
     sanitizarQuerys,
     destinosController.destacados
 )
 
 router.get('/catalogo/:destinos',
-    bloqReqBody,
     bloqReqQuery,
+    bloqReqBody,
     sanitizarParams,
     destinosController.catalogo
 )
 
 router.post('/nuevo',
-    bloqReqQuery,
     bloqReqParams,
+    bloqReqQuery,
     authMiddleware(['admin']),
     destinosController.nuevo
 )
@@ -45,8 +45,8 @@ router.put('/editar/:destino',
 )
 
 router.delete('/delete/:destino',
-    bloqReqBody,
     bloqReqQuery,
+    bloqReqBody,
     sanitizarParams,
     authMiddleware(['admin']),
     destinosController.borrar

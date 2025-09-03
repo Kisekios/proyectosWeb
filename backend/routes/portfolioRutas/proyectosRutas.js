@@ -11,8 +11,8 @@ router.use(proyectosLimiter);
 
 router.get('/',
     bloqReqParams,
-    bloqReqBody,
     bloqReqQuery,
+    bloqReqBody,
     proyectosController.proyectos
 );
 
@@ -24,8 +24,8 @@ router.post('/crear',
 );
 
 router.get('/:proyecto',
-    bloqReqBody,
     bloqReqQuery,
+    bloqReqBody,
     sanitizarParams,
     proyectosController.proyecto
 );
@@ -38,8 +38,8 @@ router.put('/editar/:proyecto',
 );
 
 router.delete('/delete/:proyecto',
-    bloqReqBody,
     bloqReqQuery,
+    bloqReqBody,
     sanitizarParams,
     authMiddleware(['admin']),
     proyectosController.borrar

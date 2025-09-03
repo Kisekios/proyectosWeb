@@ -6,88 +6,218 @@ export const destinosController = {
 
     destino: async (req, res) => {
         try {
-            const { destino } = req.validatedParams
-            if (!destino) return res.status(400).json({ error: 'parametro no valido' })
+            const { destino } = req.validatedParams;
 
-            const resultado = await destinosModel.getOne(destino)
+            if (!destino) {
+                return res.status(400).json({ error: 'Parámetro destino es obligatorio' });
+            }
+
+            const resultado = await destinosModel.getOne(destino);
+
             if (!resultado) {
                 return res.status(404).json({ error: "Destino no encontrado" });
             }
-            res.status(200).json({ resultado, destino })
+
+            res.status(200).json(resultado);
+
         } catch (error) {
+            console.error('Error en destino:', error);
             res.status(500).json({ error: "Error al obtener el destino: " + error.message });
         }
     },
 
     destacados: async (req, res) => {
         try {
-            const { tipo } = req.validatedQuery
-            if (!tipo) res.status(400).json({ error: 'parametro no valido' })
+            const { tipo } = req.validatedQuery;
 
-            const destacados = await destinosModel.getFeatured(tipo)
-            if (!destacados) {
-                return res.status(404).json({ error: "Destacados no encontrado" });
+            if (!tipo) {
+                return res.status(400).json({ error: 'Parámetro tipo es obligatorio' });
             }
-            res.status(200).json({ tipo, destacados })
+
+            const destacados = await destinosModel.getFeatured(tipo);
+
+            if (!destacados || destacados.length === 0) {
+                return res.status(404).json({ error: "No se encontraron destinos destacados" });
+            }
+
+            res.status(200).json({
+                tipo,
+                cantidad: destacados.length,
+                destacados
+            });
+
         } catch (error) {
-            res.status(500).json({ error: "Error al obtener el destino: " + error.message });
+            console.error('Error en destacados:', error);
+            res.status(500).json({ error: "Error al obtener destinos destacados: " + error.message });
         }
     },
 
     catalogo: async (req, res) => {
         try {
-            const { destinos } = req.validatedParams
-            if (!destinos) return res.status(400).json({ error: 'parametro no valido' })
+            const { destinos } = req.validatedParams;
 
-            const catalogo = await destinosModel.getList(destinos)
-            res.status(200).json({ destinos, catalogo })
+            if (!destinos) {
+                return res.status(400).json({ error: 'Parámetro tipo es obligatorio' });
+            }
+
+            const catalogo = await destinosModel.getList(destinos);
+
+            if (catalogo <= 0 ) return res.status(400).json({advertencia: 'No se encontraron destinos ' + destinos})
+
+            res.status(200).json({
+                tipo: destinos,
+                cantidad: catalogo.length,
+                catalogo
+            });
+
         } catch (error) {
-            res.status(500).json({ error: "Error al obtener el destino: " + error.message });
+            console.error('Error en catalogo:', error);
+            res.status(500).json({ error: "Error al obtener catálogo: " + error.message });
         }
     },
 
     nuevo: async (req, res) => {
         try {
-            const { nombre, titulo, ...data } = req.body
-            const { nombreExiste, tituloExiste } = await destinosModel.checkNameAndTittle(nombre, titulo);
-            if (nombreExiste || tituloExiste) res.status(400).json({ error: 'Nombre o titulo ya existentes' })
-            //validacion con el schem
-            const newDestino = await destinosModel.create(/* value del schem */)
-            res.status(200).json({ data, newDestino })
+            if (!req.body || Object.keys(req.body).length === 0) {
+                return res.status(400).json({ error: 'No se enviaron datos para crear el destino' });
+            }
+
+            const { error, value } = newDestinoSchema.validate(req.body, {
+                abortEarly: false,
+                stripUnknown: true
+            });
+
+            if (error) {
+                return res.status(400).json({
+                    error: "Datos de entrada inválidos",
+                    detalles: error.details.map(detail => detail.message)
+                });
+            }
+
+            const { id, titulo } = value;
+
+            const { nombreExiste, tituloExistente } = await destinosModel.checkNameAndTittle(id, titulo);
+
+            if (nombreExiste) {
+                return res.status(409).json({ error: 'Ya existe un destino con ese ID' });
+            }
+
+            if (tituloExistente) {
+                return res.status(409).json({ error: 'Ya existe un destino con ese título' });
+            }
+
+            const now = new Date();
+            const newDestino = await destinosModel.create({
+                ...value,
+                createdAt: formatDate(now),
+                updatedAt: formatDate(now)
+            });
+
+            res.status(201).json({
+                message: 'Destino creado exitosamente',
+                destino: {
+                    id: id,
+                    titulo: titulo,
+                    tipo: value.tipo
+                }
+            });
+
         } catch (error) {
-            res.status(500).json({ error: "Error al obtener el destino: " + error.message });
+            console.error('Error en nuevo:', error);
+
+            if (error.message.includes('duplicate') || error.code === 11000) {
+                return res.status(409).json({ error: "El destino ya existe" });
+            }
+
+            res.status(500).json({ error: "Error al crear destino: " + error.message });
         }
     },
 
     editar: async (req, res) => {
         try {
-            const { destino } = req.validatedParams
+            const { destino } = req.validatedParams;
 
-            if (!destino) return res.status(400).json({ error: 'parametro no valido' })
-            const { ...data } = req.body
-            //validacion con el schem
-            const destinoUpdated = await destinosModel.update(destino, { ...data, updatedAt: formatDate(new Date()) })
-            if (resultado.deletedCount === 0) {
-                return res.status(404).json({ error: "Proyecto no encontrado" });
+            if (!destino) {
+                return res.status(400).json({ error: 'Parámetro destino es obligatorio' });
             }
-            res.status(200).json({ destino, destinoUpdated })
+
+            if (!req.body || Object.keys(req.body).length === 0) {
+                return res.status(400).json({ error: 'No se enviaron datos para actualizar' });
+            }
+
+            const { error, value } = updateDestinoSchema.validate(req.body, {
+                abortEarly: false,
+                stripUnknown: true
+            });
+
+            if (error) {
+                return res.status(400).json({
+                    error: "Datos de actualización inválidos",
+                    detalles: error.details.map(detail => detail.message)
+                });
+            }
+
+            const destinoExistente = await destinosModel.getOne(destino);
+            if (!destinoExistente) {
+                return res.status(404).json({ error: "Destino no encontrado" });
+            }
+
+            if (value.titulo && value.titulo !== destinoExistente.titulo) {
+                const { tituloExistente } = await destinosModel.checkNameAndTittle(null, value.titulo);
+                if (tituloExistente) {
+                    return res.status(409).json({ error: 'Ya existe otro destino con ese título' });
+                }
+            }
+
+            const updateData = {
+                ...value,
+                updatedAt: formatDate(new Date())
+            };
+
+            const resultado = await destinosModel.update(destino, updateData);
+
+            if (resultado.matchedCount === 0) {
+                return res.status(404).json({ error: "Destino no encontrado para actualizar" });
+            }
+
+            res.status(200).json({
+                message: 'Destino actualizado correctamente',
+                cambios: value
+            });
+
         } catch (error) {
-            res.status(500).json({ error: "Error al obtener el destino: " + error.message });
+            console.error('Error en editar:', error);
+            res.status(500).json({ error: "Error al editar destino: " + error.message });
         }
     },
 
     borrar: async (req, res) => {
         try {
-            const { destino } = req.validatedParams
+            const { destino } = req.validatedParams;
 
-            if (!destino) return res.status(400).json({ error: 'parametro no valido' })
-            const destinoDeleted = await destinosModel.delete(destino)
-            if (resultado.deletedCount === 0) {
-                return res.status(404).json({ error: "Proyecto no encontrado" });
+            if (!destino) {
+                return res.status(400).json({ error: 'Parámetro destino es obligatorio' });
             }
-            res.status(200).json({ destino, destinoDeleted })
+
+            const destinoExistente = await destinosModel.getOne(destino);
+            if (!destinoExistente) {
+                return res.status(404).json({ error: "Destino no encontrado" });
+            }
+
+            const resultado = await destinosModel.delete(destino);
+
+            if (resultado.deletedCount === 0) {
+                return res.status(404).json({ error: "Destino no encontrado para eliminar" });
+            }
+
+            res.status(200).json({
+                message: 'Destino eliminado correctamente',
+                destinoEliminado: destinoExistente.titulo || destinoExistente.id
+            });
+
         } catch (error) {
-            res.status(500).json({ error: "Error al obtener el destino: " + error.message });
+            console.error('Error en borrar:', error);
+            res.status(500).json({ error: "Error al eliminar destino: " + error.message });
         }
     }
-}
+};

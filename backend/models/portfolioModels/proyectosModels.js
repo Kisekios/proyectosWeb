@@ -16,17 +16,7 @@ export const proyectosModel = {
 
     getOne: async (id) => {
         try {
-            let query;
-            const objectId = createSafeObjectId(id);
-
-            if (objectId) {
-                query = { _id: objectId };
-            } else {
-                // Si no es ObjectId válido, buscar por nombre
-                query = { nombre: id };
-            }
-
-            const proyecto = await portfolio.collection('proyectos').findOne(query, { projection: { _id: 0, nombre: 0, createdAt: 0, updatedAt: 0 } })
+            const proyecto = await portfolio.collection('proyectos').findOne(id, { projection: { _id: 0, nombre: 0, createdAt: 0, updatedAt: 0 } })
             if (!proyecto) return null;
 
             return proyecto;
@@ -47,18 +37,8 @@ export const proyectosModel = {
 
     update: async (id, updateData) => {
         try {
-            let query;
-            const objectId = createSafeObjectId(id);
-
-            if (objectId) {
-                query = { _id: objectId };
-            } else {
-                // Si no es ObjectId válido, buscar por nombre
-                query = { nombre: id };
-            }
-
             return await portfolio.collection('proyectos').updateOne(
-                query,
+                id,
                 { $set: updateData }
             );
         } catch (error) {
@@ -69,7 +49,7 @@ export const proyectosModel = {
 
     delete: async (id) => {
         try {
-            let query;
+/*             let query;
             const objectId = createSafeObjectId(id);
 
             if (objectId) {
@@ -77,9 +57,9 @@ export const proyectosModel = {
             } else {
                 // Si no es ObjectId válido, buscar por nombre
                 query = { nombre: id };
-            }
+            } */
 
-            return await portfolio.collection('proyectos').deleteOne(query);
+            return await portfolio.collection('proyectos').deleteOne(id);
         } catch (error) {
             console.error('Error en delete:', error);
             throw new Error('Error al eliminar el proyecto');

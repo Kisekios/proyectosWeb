@@ -3,7 +3,7 @@ import { createSafeObjectId } from '../utils/objetcIdMongoDB.js';
 
 // Middleware para sanitizar req.params
 export const sanitizarParams = (req, res, next) => {
-    const allowedParams = ['id', 'email', 'proyectos', 'destino', 'destinos'];
+    const allowedParams = ['id', 'email', 'proyecto', 'destino', 'destinos'];
 
     const schema = Joi.object({
         id: Joi.string().messages({
@@ -15,11 +15,11 @@ export const sanitizarParams = (req, res, next) => {
         destinos: Joi.string().valid('nacionales', 'internacionales')
     })
         .unknown(false)
-        .oxor(...allowedParams);
+        .xor(...allowedParams);
     const { error, value } = schema.validate(req.params);
 
     if (error) {
-        return res.status(400).json({ error: error.message });
+        return res.status(400).json({ error: 'Parametro no valido' });
     }
 
     if (value.id) {
@@ -40,7 +40,7 @@ export const sanitizarParams = (req, res, next) => {
 export const sanitizarQuerys = (req, res, next) => {
     const schema = Joi.object({
         tipo: Joi.string()
-            .valid('home', 'nacionales', 'internacionales')
+            .valid('home', 'nacional', 'internacional')
             .required()
             .messages({
                 'any.only': 'parametro no valido',
@@ -75,9 +75,13 @@ export const bloqReqQuery = (req, res, next) => {
 
 // Middleware para bloquear cualquier parámetro en req.params
 export const bloqReqParams = (req, res, next) => {
-    if (Object.keys(req.params).length > 0) {
+    const hasValidParams = Object.values(req.params).some(param =>
+        param !== undefined && param !== null && param !== ''
+    );
+
+    if (hasValidParams) {
         return res.status(400).json({
-            error: 'No se permiten parámetros en la URL',
+            error: 'No se permiten parámetros en la URL para esta ruta',
             detalles: req.params
         });
     }

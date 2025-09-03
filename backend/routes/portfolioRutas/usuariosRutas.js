@@ -10,14 +10,15 @@ const router = Router()
 router.use(usuariosLimiter)
 
 router.post('/ingresar',
+    bloqReqParams,
     bloqReqQuery,
     usuariosController.ingresar
 )
 
 router.get('/perfiles',
     bloqReqParams,
-    bloqReqBody,
     bloqReqQuery,
+    bloqReqBody,
     authMiddleware(['admin']),
     usuariosController.perfiles
 )
@@ -30,8 +31,8 @@ router.post('/registrarse',
 )
 
 router.delete('/delete/:email',
-    bloqReqBody,
     bloqReqQuery,
+    bloqReqBody,
     sanitizarParams,
     authMiddleware(['admin']),
     usuariosController.borrar
@@ -39,8 +40,8 @@ router.delete('/delete/:email',
 
 router.get('/set-items',
     bloqReqParams,
-    bloqReqBody,
     bloqReqQuery,
+    bloqReqBody,
     authMiddleware(['admin']),
     usuariosController.setItems
 )

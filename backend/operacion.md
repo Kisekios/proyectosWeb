@@ -306,7 +306,8 @@
     ├─> /clusters-activos
     ├─> /api/usuarios { checkLimiter: 10 }
     │   ├─> /ingresar
-    │   │   ├── bloquearQueryParams
+    │   │   ├── bloqReqParams
+    │   │   ├── bloqReqQuery
     │   │   └── .controller.ingresar
     │   │       ├── » envia req.body a loginSchema.validate() ─> « retorna { email, clave}; ⚠️ campos invalidos son limpiados; ❌ res.error por datos incoherente .
     │   │       ├── » envia email a usuariosModel.getByEmail() ─> « retorna { nombre, clave , lockedUntil, loginAttempts}; ⚠️ res.error por usuarios no encontrado.
@@ -315,13 +316,16 @@
     │   │       ├── » envia generateToken(usuario) agrega el iss y aud al token.
     │   │       └── « res.status(200) usuario y token.
     │   ├─> /perfiles
-    │   │   ├── bloquearQueryParams
+    │   │   ├── bloqReqParams
+    │   │   ├── bloqReqQuery
+    │   │   ├── bloqReqBody
     │   │   ├── authMiddleware(['admin'])
     │   │   └── .controller.perfiles
     │   │       ├── » solicita usuariosModel.getAll() ─> « retorna los usuarios sin { clave, _id, updatedAt }.
     │   │       └── « res.status(200) lista de usuarios.
     │   ├─> /registrarse
-    │   │   ├── bloquearQueryParams
+    │   │   ├── bloqReqParams
+    │   │   ├── bloqReqQuery
     │   │   ├── authMiddleware(['admin'])
     │   │   └── .controller.registrarse
     │   │       ├── ⚠️ validacion req.body; ⚠️ Validacion de req.body.rol : solo se permite el rol de "editor".
@@ -330,21 +334,26 @@
     │   │       ├── → encripta la clave bcrypt
     │   │       ├── » envia los datos a usuariosModel.create() + createdAt y updatedAt.
     │   │       └── « res.status(200) { nombre, email }.
-    │   ├─> /delete
-    │   │   ├── bloquearQueryParams
+    │   ├─> /delete/:email
+    │   │   ├── bloqReqQuery
+    │   │   ├── bloqReqBody
+    │   │   ├── sanitizarParams
     │   │   ├── authMiddleware(['admin'])
     │   │   └── .controller.borrar
     │   │       ├── » envia { email } a deleteSchema.validate(); ⚠️ los demas datos en req.body son descartados.
     │   │       ├── » envia { email } a usuariosModel.delete(); ❌ Si no se encuentra el email (deletedCount === 0) en la db ─> res.status(404) "Usuario no encontrado".
     │   │       └── « res.status(200) "Usuario eliminado" + { email }.
     │   ├─> /set-items
-    │   │   ├── bloquearQueryParams
+    │   │   ├── bloqReqParams
+    │   │   ├── bloqReqQuery
+    │   │   ├── bloqReqBody
     │   │   ├── authMiddleware(['admin'])
     │   │   └── .controller.setItems
     │   │       ├── » envia usuariosModel.resetIntentos() ─> updateMany() ─> setea todos los usuarios ['loginAttempts', 'lastAttempts', 'lockedUntil']
     │   │       └── « res.status(200) modifiedCount.
     │   └─> /editar-perfil
-    │       ├── bloquearQueryParams
+    │       ├── bloqReqParams
+    │       ├── bloqReqQuery
     │       ├── authMiddleware(['admin', 'editor'])
     │       └── .controller.editar
     │           ├── → separa { email, ...data }; ⚠️ el email es obligatorio ; 
@@ -355,23 +364,17 @@
     │   
     ├─> /api/proyectos { checkLimiter: 15 }
     │   ├─> /
-    │   │   ├── bloquearQueryParams
+    │   │   ├── bloqReqParams
+    │   │   ├── bloqReqQuery
+    │   │   ├── bloqReqBody
     │   │   └── .controller.proyectos
     │   │       │   # ✅ » res.status(200).json(proyectos).
     │   │       │   # ❌ » res.status(500).json({ error })
     │   │       ├── » solicita los proyectos a proyectosModel.getAll(); ⚠️ sanitiza los datos con mongodb.
     │   │       └── » res.status(200).
-    │   ├─> /:id
-    │   │   ├── bloquearQueryParams
-    │   │   └── .controller.proyecto
-    │   │       │   # ⚠️ → requerido el id (nombre o id_mongodb) del req.params
-    │   │       │   # ✅ » res.status(200).json(proyecto).
-    │   │       │   # ❌ » res.status(500).json({ error })
-    │   │       ├── → { id } de req.params; ⚠️ { id } puede ser un id_mongodb o el nombre del proyecto; ❌ no id res.status(400).
-    │   │       ├── » envia { id } a proyectosModel.getOne(id); ⚠️ sanitiza los datos con mongodb; ❌ « res.status(200) si no encuentra el proyecto.
-    │   │       └── » res.status(200)
     │   ├─> /crear
-    │   │   ├── bloquearQueryParams
+    │   │   ├── bloqReqParams
+    │   │   ├── bloqReqQuery
     │   │   ├── authMiddleware(['admin'])
     │   │   └── .controller.crear
     │   │       │   # ⚠️ → se requieren datos del proyecto segun el proyectosSchema del req.body.
@@ -381,58 +384,77 @@
     │   │       ├── » envia { nombre, titulo } a proyectosModel.checkNameAndTitle(); ❌ « existencia de nombre o titulo res.status(400).
     │   │       ├── » envia { value } del schema a proyectosModel.create().
     │   │       └── » res.status(201).
-    │   ├─> /editar/:id
-    │   │   ├── bloquearQueryParams
+    │   ├─> /:proyecto
+    │   │   ├── bloqReqQuery
+    │   │   ├── bloqReqBody
+    │   │   ├── sanitizarParams
+    │   │   └── .controller.proyecto
+    │   │       │   # ⚠️ → requerido el proyecto del req.params
+    │   │       │   # ✅ » res.status(200).json(proyecto).
+    │   │       │   # ❌ » res.status(500).json({ error })
+    │   │       ├── → { id } de req.params; ⚠️ { id } puede ser un id_mongodb o el nombre del proyecto; ❌ no id res.status(400).
+    │   │       ├── » envia { id } a proyectosModel.getOne(id); ⚠️ sanitiza los datos con mongodb; ❌ « res.status(200) si no encuentra el proyecto.
+    │   │       └── » res.status(200)
+    │   ├─> /editar/:proyecto
+    │   │   ├── bloqReqQuery
+    │   │   ├── sanitizarParams
     │   │   ├── authMiddleware(['admin'])
     │   │   └── .controller.editar
-    │   │       │   # ⚠️ → requerido el id (nombre o id_mongodb) del req.params + los cambios del req.body.
+    │   │       │   # ⚠️ → requerido el proyecto del req.params + los cambios del req.body.
     │   │       │   # ✅ » res.status(200).json({ exito, cambios })
     │   │       │   # ❌ » res.status(500) / res.status(400) datos no validos o proyecto no encontrado.
     │   │       ├── → { id } de req.params y { ...cambios } de req.body; ⚠️ { id } puede ser un id_mongodb o el nombre del proyecto; ❌ no id res.status(400).
     │   │       ├── » envia { ...cambios } a proyectosUpdateSchema(); ⚠️ minimo 1 dato; ❌ res.status(400) si no cumple el schem.
     │   │       ├── » envia a proyectosModel.update(id, {...cambios, fechaUpdated} ) ; « res.status (404) si matchedCount = 0
     │   │       └── » res.status(200)
-    │   └─> /delete/:id
-    │       ├── bloquearQueryParams
+    │   └─> /delete/:proyecto
+    │       ├── bloqReqQuery
+    │       ├── bloqReqBody
+    │       ├── sanitizarParams
     │       ├── authMiddleware(['admin'])
     │       └── .controller.borrar
-    │           │   # ⚠️ → requerido el id (nombre o id_mongodb) del req.params.
+    │           │   # ⚠️ → requerido el proyecto del req.params.
     │           │   # ✅ » res.status(200).json({ exito })
     │           │   # ❌ » res.status(500) / res.status(404) proyecto no encontrado.
-    │           ├── { id } de req.params; ⚠️ { id } puede ser un id_mongodb o el nombre del proyecto; ❌ no id res.status(400).
-    │           ├── » envia { id } a proyectosModel.delete(); ❌ si deletedCount = 0 res.status(400) proyecto no encontrado.
+    │           ├── { proyecto } de req.params; ❌ no proyecto ─> res.status(400).
+    │           ├── » envia { proyecto } a proyectosModel.delete(); ❌ si deletedCount = 0 res.status(400) proyecto no encontrado.
     │           └── » res.status(200).
     │
     ├─> /api/destinos { checkLimiter: 100 }
     │   ├─> /:destino
-    │   │   ├── bloquearQueryParams
+    │   │   ├── bloqReqQuery
+    │   │   ├── bloqReqBody
+    │   │   ├── sanitizarParams
     │   │   └── .controller.infoDestino
     │   │       │   # ⚠️ → requiere { destino } del req.params.
     │   │       │   # ✅ » res.status(200).json({destino})
     │   │       │   # ❌ » res.status(500) / res.status(400) destino no encontrado
-    │   │       ├── 
-    │   │       ├── 
-    │   │       └── 
+    │   │       ├── → { destino } de req.params » destinosModel.getOne(destino) ; ⚠️ valida en las dos colecciones de la db; ❌ no resultado res.status(400)
+    │   │       └── » res.status(200)
     │   ├─> /destacados?tipo=query
-    │   │   ├── validarDestacadosQuery
+    │   │   ├── bloqReqParams
+    │   │   ├── bloqReqBody
+    │   │   ├── sanitizarQuerys
     │   │   └── .controller.destacados
     │   │       │   # ⚠️ → requiere {nacionales, internacionales, home} de query params tipo
-    │   │       │   # ✅ » res.status(200).json({ destacados nac/int/home})
+    │   │       │   # ✅ » res.status(200).json({tipo, cantidad, destacados nac/int/home})
     │   │       │   # ❌ » res.status(500) / res.status(400) querys params no validos.
-    │   │       ├── 
-    │   │       ├── 
-    │   │       └── 
-    │   ├─> /catalogo/:{nacionales, internacionales}
-    │   │   ├── bloquearQueryParams
+    │   │       ├── → { tipo } de req.validatedQuery ─> destinosModel.getFeatured(tipo) ─> « destacados; ⚠️ solo datos permitidos en el sanitizarQuerys; ❌ no tipo / no destacados o === 0 ─> res.status(400) .
+    │   │       ├── « recibe destacados [ home, nacional, internacional] = true; ⚠️ solo parametros validos.
+    │   │       └── » res.status(200)
+    │   ├─> /catalogo/:destinos {nacionales, internacionales}
+    │   │   ├── bloqReqQuery
+    │   │   ├── bloqReqBody
+    │   │   ├── sanitizarParams
     │   │   └── .controller.allDestinosNI
-    │   │       │   # ⚠️ → requiere unicamente {nacionales, internacionales} de req.params.
-    │   │       │   # ✅ » res.status(200).json({catalogo nac/inter})
-    │   │       │   # ❌ » res.status(500) / res.status(400) query params no valido 
-    │   │       ├── 
-    │   │       ├── 
-    │   │       └── 
+    │   │       │   # ⚠️ → requiere destinos {nacionales, internacionales} de req.params.
+    │   │       │   # ✅ » res.status(200).json({tipo, cantidad, catalogo nac/inter})
+    │   │       │   # ❌ » res.status(500) / res.status(400) query params no valido / no se encontraron destinos.
+    │   │       ├── → { destinos } de req.params ─> destinosModel.getList(destinos) ─> « catalogo; ⚠️ solo { nacionales, internacionales } es valido; ❌ catalogo <=0 res.status(400)
+    │   │       └── » res.status(200)
     │   ├─> /nuevo
-    │   │   ├── bloquearQueryParams
+    │   │   ├── bloqReqParams
+    │   │   ├── bloqReqQuery
     │   │   ├── authMiddleware(['admin'])
     │   │   └── .controller.crearDestino
     │   │       │   # ⚠️ → requiere { destino } de req.body → se valida con newDestinoSchem (joi).
@@ -442,7 +464,8 @@
     │   │       ├── 
     │   │       └── 
     │   ├─> /editar/:id
-    │   │   ├── bloquearQueryParams
+    │   │   ├── bloqReqQuery
+    │   │   ├── sanitizarParams
     │   │   ├── authMiddleware(['admin'])
     │   │   └── .controller.editarDestino
     │   │       │   # ⚠️ → requiere { destino } de req.params, { datos } de req.body → se valida con destinoUpdateSchem.
@@ -452,7 +475,9 @@
     │   │       ├── 
     │   │       └── 
     │   └─> /delete/:id
-    │       ├── bloquearQueryParams
+    │       ├── bloqReqQuery
+    │       ├── bloqReqBody
+    │       ├── sanitizarParams
     │       ├── authMiddleware(['admin'])
     │       └── .controller.borrarDestino
     │           │   # ⚠️ → requiere { destino } de req.params.
