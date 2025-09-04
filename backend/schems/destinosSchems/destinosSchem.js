@@ -10,6 +10,18 @@ const actividadSchema = Joi.object({
     imagen: Joi.string().uri({ allowRelative: true }).required()
 });
 
+const diaSchema = Joi.object({
+    dia: Joi.string().trim().required(),
+    actividades: Joi.array().items(Joi.string().trim()).min(1).required()
+});
+
+const rutaSchema = Joi.object({
+    ruta: Joi.string().trim().required(),
+    imagen: Joi.string().uri({ allowRelative: true }).required(),
+    url: Joi.string().uri({ allowRelative: true }).required()
+});
+
+
 export const newDestinoSchema = Joi.object({
     id: Joi.string().trim().required(),
     titulo: Joi.string().trim().required(),
@@ -19,7 +31,7 @@ export const newDestinoSchema = Joi.object({
     bannerGrande: Joi.alternatives().try(Joi.string().uri({ allowRelative: true }), Joi.boolean().valid(false)),
     descripcion: Joi.string().trim().required(),
     incluye: Joi.string().trim().required(),
-    planes: Joi.array().items(planSchema).min(1).max(3).required(),
+    planes: Joi.array().items(Joi.alternatives().try(planSchema, diaSchema, rutaSchema)).min(1).max(3).required(),
     actividades: Joi.array().items(actividadSchema).min(1).required(),
     informacion: Joi.array().items(Joi.string().trim()).min(1).required()
 }).unknown(false);
@@ -32,7 +44,7 @@ export const updateDestinoSchema = Joi.object({
     bannerGrande: Joi.alternatives().try(Joi.string().uri({ allowRelative: true }), Joi.boolean().valid(false)),
     descripcion: Joi.string().trim(),
     incluye: Joi.string().trim(),
-    planes: Joi.array().items(planSchema).min(1).max(3),
+    planes: Joi.array().items(Joi.alternatives().try(planSchema, diaSchema, rutaSchema)).min(1).max(3),
     actividades: Joi.array().items(actividadSchema).min(1),
     informacion: Joi.array().items(Joi.string().trim())
 }).unknown(false);
