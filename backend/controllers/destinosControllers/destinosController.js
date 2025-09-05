@@ -62,7 +62,7 @@ export const destinosController = {
 
             const catalogo = await destinosModel.getList(destinos);
 
-            if (catalogo <= 0 ) return res.status(400).json({advertencia: 'No se encontraron destinos ' + destinos})
+            if (catalogo <= 0) return res.status(400).json({ advertencia: 'No se encontraron destinos ' + destinos })
 
             res.status(200).json({
                 tipo: destinos,
@@ -107,7 +107,7 @@ export const destinosController = {
             }
 
             const now = new Date();
-            const newDestino = await destinosModel.create({
+            await destinosModel.create({
                 ...value,
                 createdAt: formatDate(now),
                 updatedAt: formatDate(now)
@@ -141,6 +141,11 @@ export const destinosController = {
                 return res.status(400).json({ error: 'Parámetro destino es obligatorio' });
             }
 
+            const destinoExistente = await destinosModel.getOne(destino);
+            if (!destinoExistente) {
+                return res.status(404).json({ error: "Destino no encontrado" });
+            }
+
             if (!req.body || Object.keys(req.body).length === 0) {
                 return res.status(400).json({ error: 'No se enviaron datos para actualizar' });
             }
@@ -155,11 +160,6 @@ export const destinosController = {
                     error: "Datos de actualización inválidos",
                     detalles: error.details.map(detail => detail.message)
                 });
-            }
-
-            const destinoExistente = await destinosModel.getOne(destino);
-            if (!destinoExistente) {
-                return res.status(404).json({ error: "Destino no encontrado" });
             }
 
             if (value.titulo && value.titulo !== destinoExistente.titulo) {
@@ -177,7 +177,7 @@ export const destinosController = {
             const resultado = await destinosModel.update(destino, updateData);
 
             if (resultado.matchedCount === 0) {
-                return res.status(404).json({ error: "Destino no encontrado para actualizar" });
+                return res.status(404).json({ error: "Destino no encontrado" });
             }
 
             res.status(200).json({
@@ -207,7 +207,7 @@ export const destinosController = {
             const resultado = await destinosModel.delete(destino);
 
             if (resultado.deletedCount === 0) {
-                return res.status(404).json({ error: "Destino no encontrado para eliminar" });
+                return res.status(404).json({ error: "Destino no encontrado" });
             }
 
             res.status(200).json({

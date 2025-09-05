@@ -92,7 +92,7 @@ export const destinosModel = {
 
             for (const coleccion of colecciones) {
                 const result = await destinos.collection(coleccion).updateOne(
-                    { $or: [{ id: destinoIdentifier }, { nombre: destinoIdentifier }] },
+                    { $or: [{ id: destinoIdentifier }, { titulo: destinoIdentifier }] },
                     { $set: updateData }
                 );
                 if (result.matchedCount > 0) return result;

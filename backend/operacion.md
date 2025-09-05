@@ -460,9 +460,10 @@
     │   │       │   # ⚠️ → requiere { destino } de req.body → se valida con newDestinoSchem (joi).
     │   │       │   # ✅ » res.status(200).json({exito, nombreDestino})
     │   │       │   # ❌ » res.status(500) / res.status(400) nombreDestino ya existe, datos de req.body incompletos o no validos.
-    │   │       ├── 
-    │   │       ├── 
-    │   │       └── 
+    │   │       ├── → { destino } de req.body ─> newDestinoSchema.validate(destino); ⚠️ todos los datos son requeridos.
+    │   │       ├── » envia {id, titulo } de destino a destinosModel.checkNameAndTittle(id,titulo); ⚠️ Si { id, titulo } ya existen ─> « res.status(409).
+    │   │       ├── » envia {destino,createdAt, UpdatedAt} a destinosModel.create().
+    │   │       └── » res.status(201)
     │   ├─> /editar/:id
     │   │   ├── bloqReqQuery
     │   │   ├── sanitizarParams
@@ -471,9 +472,10 @@
     │   │       │   # ⚠️ → requiere { destino } de req.params, { datos } de req.body → se valida con destinoUpdateSchem.
     │   │       │   # ✅ » res.status(200).json({exito, cambio})
     │   │       │   # ❌ » res.status(500) / res.status(400) destino no encontrado, datos de req.body no validos.
-    │   │       ├── 
-    │   │       ├── 
-    │   │       └── 
+    │   │       ├── → { destino } de req.params / { destinoData } de req.body ─> » envia { destino } a destinosModel.getOne(); ⚠️ { destinoData } minimo 1 valor; ❌ si { destino } no existe res.status(404). 
+    │   │       ├── » envia { destinoData } a updateDestinoSchema.validate();⚠️ { destinoData.titulo} se valida que no exista; ❌ si { destinoData } no son validos res.status(400).
+    │   │       ├── » envia { destino, destinoData } a destinosModel.update(); si matchedCount = 0 ─> res.status(404)
+    │   │       └── » res.status(200)
     │   └─> /delete/:id
     │       ├── bloqReqQuery
     │       ├── bloqReqBody
@@ -483,6 +485,7 @@
     │           │   # ⚠️ → requiere { destino } de req.params.
     │           │   # ✅ » res.status(200).json({exito, nombreDestinoDel})
     │           │   # ❌ » res.status(500) / res.status(400) destino no encontrado.
-    │           ├── 
-    │           ├── 
-    │           └── 
+    │           ├── { destino } de req.params; ❌ { !destino } res.status(400);
+    │           ├── » envia { destino } a destinosModel.getOne(); ❌ si { destino } no econtrado res.status(404).
+    │           ├── » envia { destino } a destinosModel.delete(); ❌ si deletedCount === 0 ─> res.status(404).
+    │           └── » res.status(200).
